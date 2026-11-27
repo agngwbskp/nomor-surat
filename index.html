@@ -158,7 +158,7 @@
           <option value="Undangan/SPT untuk kegiatan mendatang">
           <option value="Menyesuaikan jadwal pengiriman">
         </datalist>
-        <div class="hint" id="antiHint">Sistem otomatis menjaga urutan: memakai nomor cadangan tanggal tersebut bila ada, atau nomor sisipan (mis. 919a).</div>
+        <div class="hint" id="antiHint">Sistem otomatis menjaga urutan nomor sesuai tanggal surat.</div>
       </div>
 
       <div class="grid">
@@ -633,6 +633,7 @@
     'NORMAL': 'Nomor urut biasa',
     'ANTIDATIR': 'Antidatir — nomor urut biasa',
     'ANTIDATIR-SISIPAN': 'Antidatir — nomor sisipan',
+    'SISIPAN': 'Blok nomor hari ini sudah habis — nomor sisipan',
     'ANTIDATIR-CADANGAN': 'Antidatir — nomor cadangan',
     'POSTDATIR': 'Postdatir — nomor urut berikutnya (dipesan lebih awal)'
   };
@@ -653,16 +654,28 @@
         $('alasanLbl').textContent = 'Alasan tanggal maju';
         $('alasan').setAttribute('list', 'dlAlasanMaju');
         $('alasan').placeholder = 'mis. Surat disiapkan lebih awal untuk tanggal kegiatan';
-        $('antiHint').textContent = 'Nomor urut berikutnya dipesan sekarang. Surat bertanggal hari ini yang diambil sesudahnya tetap mendapat nomor biasa.';
+
       } else if (arah === 'mundur') {
         $('antiTtl').textContent = '⏪ Surat antidatir (tanggal sebelum hari ini)';
         $('alasanLbl').textContent = 'Alasan tanggal mundur';
         $('alasan').setAttribute('list', 'dlAlasanMundur');
         $('alasan').placeholder = 'mis. Surat sudah ditandatangani, nomor belum diambil';
-        $('antiHint').textContent = 'Sistem otomatis menjaga urutan: memakai nomor cadangan tanggal tersebut bila ada, atau nomor sisipan (mis. 919a).';
+
       }
       if (arahLalu !== null && arah) $('alasan').value = '';
       arahLalu = arah;
+    }
+    // v1.9: keterangan menyesuaikan mode penomoran tahun surat (blok harian / nomor urut biasa)
+    var thn = Number(String($('tgl').value || D.hariIni).slice(0, 4));
+    var blok = D.blok && D.blok.perHari > 0 && thn >= D.blok.mulaiTahun;
+    if (arah === 'maju') {
+      $('antiHint').textContent = blok
+        ? 'Nomor diambil dari blok ' + D.blok.perHari + ' nomor milik tanggal surat tersebut, sehingga urutannya tetap sesuai tanggal.'
+        : 'Nomor urut berikutnya dipesan sekarang. Surat bertanggal hari ini yang diambil sesudahnya tetap mendapat nomor biasa.';
+    } else if (arah === 'mundur') {
+      $('antiHint').textContent = blok
+        ? 'Nomor diambil dari sisa blok ' + D.blok.perHari + ' nomor milik tanggal tersebut. Bila sudah habis, diberi nomor sisipan (mis. 0032.1).'
+        : 'Sistem otomatis menjaga urutan: memakai nomor cadangan tanggal tersebut bila ada, atau nomor sisipan (mis. 919.1).';
     }
     var wajib = arah === 'mundur' ? D.antidatir.wajibAlasan : arah === 'maju' ? D.antidatir.wajibAlasanMaju : false;
     $('alasanLbl').className = wajib ? 'req' : '';
@@ -684,7 +697,7 @@
           if (seq !== pvSeq) return;
           $('pv').textContent = r.nomor;
           $('pvBadge').innerHTML = badge(r.metode);
-          $('pvInfo').textContent = r.metode === 'NORMAL' ? '' : r.info;
+          $('pvInfo').textContent = r.metode === 'NORMAL' && !/^Blok/.test(r.info || '') ? '' : r.info;
           $('pv').parentNode.classList.toggle('antidatir', /^ANTIDATIR/.test(r.metode));
           $('pv').parentNode.classList.toggle('postdatir', r.metode === 'POSTDATIR');
           if ($('msgA').className.indexOf('warn') > -1) show($('msgA'));
